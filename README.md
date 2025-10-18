@@ -1,6 +1,6 @@
 # 说明 
 
-在Linux上搭建STM32F00RBT6开发环境，为QEMU做准备。
+在Linux上搭建STM32F100RBT6开发板开发环境，为QEMU做准备。
 
 - 实现了LED
 - 实现了串口打印，并且实现了printf打印
