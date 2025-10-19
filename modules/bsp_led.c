@@ -1,7 +1,10 @@
 #include "bsp_led.h"
 
+
+
 void GPIO_LED_Init(void)
 {
+
 	GPIO_InitTypeDef GPIO_InitStruct = {0};
 	__HAL_RCC_GPIOD_CLK_ENABLE();
 	__HAL_RCC_GPIOC_CLK_ENABLE();
@@ -17,26 +20,50 @@ void GPIO_LED_Init(void)
 
 void USER_LED1_On()
 {
+#ifdef QEMU_DEBUG
+	qemu_printf("[LED1] ON\r\n");
+#else
 	HAL_GPIO_WritePin(GPIOC, GPIO_PIN_8, GPIO_PIN_SET);
+#endif
 }
 void USER_LED1_Off()
 {
+#ifdef QEMU_DEBUG
+	qemu_printf("[LED1] OFF\r\n");
+#else
 	HAL_GPIO_WritePin(GPIOC, GPIO_PIN_8, GPIO_PIN_RESET);
+#endif
 }
 void USER_LED1_Toggle()
 {
+#ifdef QEMU_DEBUG
+		qemu_printf("[LED1] TOGGLE\r\n");
+#else
 	HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_8);
+#endif
 }
 void USER_LED2_On()
 {
+#ifdef QEMU_DEBUG
+	qemu_printf("[LED2] ON\r\n");
+#else
 	HAL_GPIO_WritePin(GPIOC, GPIO_PIN_9, GPIO_PIN_SET);
+#endif
 }
 void USER_LED2_Off()
 {
+#ifdef QEMU_DEBUG
+	qemu_printf("[LED2] OFF\r\n");
+#else
 	HAL_GPIO_WritePin(GPIOC, GPIO_PIN_9, GPIO_PIN_RESET);
+#endif
 }
 void USER_LED2_Toggle()
 {
+#ifdef QEMU_DEBUG
+	qemu_printf("[LED2] TOGGLE\r\n");
+#else
 	HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_9);
+#endif
 }
 

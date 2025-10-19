@@ -23,7 +23,6 @@
 #include "bsp_led.h"
 #include "bsp_uart.h"
 //#include <stdio.h>
-#include "rtthread.h"
 
 
 /** @addtogroup STM32F1xx_HAL_Examples
@@ -42,7 +41,55 @@
 void SystemClock_Config(void);
 
 /* Private functions ---------------------------------------------------------*/
+#if 0
+//#define USART2_BASE (0x40004400UL)
+#define USART2_SR   (*(volatile uint32_t *)(USART2_BASE + 0x00))
+#define USART2_DR   (*(volatile uint32_t *)(USART2_BASE + 0x04))
 
+static void qemu_myputc(char c)
+{
+    while (!(USART2_SR & (1 << 7)));  // TXE: Transmit data register empty
+    USART2_DR = c;
+}
+
+static void qemu_myputs(const char *s)
+{
+    while (*s) qemu_myputc(*s++);
+}
+#endif
+
+#if 1
+//#define USART1_BASE (0x40013800UL)
+#define RCC_APB2ENR (*(volatile unsigned int *)0x40021018)
+#define USART1_SR   (*(volatile unsigned int *)(USART1_BASE + 0x00))
+#define USART1_DR   (*(volatile unsigned int *)(USART1_BASE + 0x04))
+#define USART1_BRR  (*(volatile unsigned int *)(USART1_BASE + 0x08))
+#define USART1_CR1  (*(volatile unsigned int *)(USART1_BASE + 0x0C))
+
+static void uart_init(void)
+{
+    RCC_APB2ENR |= (1 << 14);     // USART1EN
+    USART1_BRR = 0x1D4C;          // 72MHz / 115200
+    USART1_CR1 = 0x200C;          // UE + TE + RE
+}
+
+static void uart_putc(char c)
+{
+    while (!(USART1_SR & (1 << 7)));  // TXE
+    USART1_DR = c;
+}
+
+void rt_hw_console_output(const char *str)
+{
+    while (*str)
+    {
+        if (*str == '\n') uart_putc('\r');
+        uart_putc(*str++);
+    }
+}
+
+
+#endif
 /**
   * @brief  Main program
   * @param  None
@@ -57,12 +104,20 @@ int main(void)
 
   /* Add your application code here */
   //GPIO_KEY_Init();
-  GPIO_LED_Init();
-  MX_USART1_UART_Init();
-  USER_LED1_On();
-  USER_LED2_On();
+//  GPIO_LED_Init();
+ // MX_USART1_UART_Init();
+ // MX_USART2_UART_Init();
+  uart_init();
 
-  rt_kprintf("Hello STM32F100RBT6! \r\n");
+  //myputstr("Hello UART2\r\n");
+  rt_hw_console_output("Hello QEMU UART!\n");
+
+  
+//  USER_LED1_On();
+ // USER_LED2_On();
+
+  //rt_kprintf("Hello STM32F100RBT6! \r\n");
+  
 
   /* Infinite loop */
   while (1)

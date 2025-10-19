@@ -22,11 +22,23 @@
 
 /* Includes ------------------------------------------------------------------*/
 #include "stm32f1xx_hal.h"
+#include "rtthread.h"
 
 /* Exported types ------------------------------------------------------------*/
 /* Exported constants --------------------------------------------------------*/
 /* Exported macro ------------------------------------------------------------*/
+
+#ifdef QEMU_DEBUG
+	#define qemu_printf(...) 	rt_kprintf(__VA_ARGS__)
+	#define qemu_puts(str)		rt_kputs(str)
+#else
+	#define qemu_printf(...)
+	#define qemu_puts(str)
+#endif
+
 /* Exported functions ------------------------------------------------------- */
 void Error_Handler(void);
+
+
 
 #endif /* __MAIN_H */

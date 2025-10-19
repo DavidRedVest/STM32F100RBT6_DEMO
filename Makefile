@@ -21,16 +21,21 @@ TARGET := firmware
 #设置编译参数和编译选项
 CFLAGS := -mcpu=cortex-m3 -mthumb -std=c11 -Wall -ffunction-sections -fdata-sections -fstack-usage
 #-O2表示开启优化，-Og便于调试，-g3启用最高等级调试信息（配合GDB使用）
-#CFLAGS += -g -O0
+CFLAGS += -g3 -O2
 LDFLAGS := -mcpu=cortex-m3 -mthumb -Wl,--gc-sections -Wl,-Map=firmware.map -Wl,--print-memory-usage
 LDFLAGS += -specs=nosys.specs 
+
 #-specs=nano.specs
 #LDFLAGS += -Wl,--start-group -lc -lm -Wl,--end-group
+
+# 当 QEMU 调试时启用
+#ifeq ($(QEMU_DEBUG),1)
+CFLAGS += -DQEMU_DEBUG
+#endif
 
 #添加文件路径
 INCDIRS := stlib/cminc \
             stlib/inc \
-            stlib/inc/Legacy \
             stlib \
             user \
             modules \
@@ -38,7 +43,6 @@ INCDIRS := stlib/cminc \
 
 SRCDIRS := stlib \
             stlib/src \
-            stlib/src/Legacy \
             user \
             modules \
             modules/uart
@@ -60,10 +64,10 @@ CFILENDIR := $(notdir $(CFILES))
 #将文件替换为.o文件
 COBJS := $(patsubst %, obj/%, $(CFILENDIR:.c=.o))
 SOBJS := $(patsubst %, obj/%, $(SFILENDIR:.S=.o))
-OBJS := $(SOBJS) $(COBJS)
+OBJS := $(sort $(SOBJS) $(COBJS))
 
 #头文件依赖
-DEPS := $(patsubst obj/%, .%.d, $(OBJS))
+DEPS := $(patsubst obj/%, obj/%.d, $(OBJS))
 DEPS := $(wildcard $(DEPS))
 
 .PHONY: all clean upload
@@ -88,10 +92,10 @@ endif
 
 #编译文件
 $(SOBJS) : obj/%.o : %.S
-	@$(CC) $(CFLAGS) $(INCLUDE) $(DEFS) -c -o $@ $< -MD -MF .$(notdir $@).d
+	@$(CC) $(CFLAGS) $(INCLUDE) $(DEFS) -c -o $@ $< -MD -MF obj/$(notdir $@).d
 
 $(COBJS) : obj/%.o : %.c
-	@$(CC) $(CFLAGS) $(INCLUDE) $(DEFS) -c -o $@ $< -MD -MF .$(notdir $@).d
+	@$(CC) $(CFLAGS) $(INCLUDE) $(DEFS) -c -o $@ $< -MD -MF obj/$(notdir $@).d
 
 
 clean:
@@ -102,7 +106,23 @@ upload:all
 	@echo "Flashing firmware to STM32 via J-Link..."
 	@JLinkExe jlink.cfg
 	@echo "Done."
-
+	
+.PHONY:gdbserver
 gdbserver:
 	@JLinkGDBServer -device STM32F100RB -if SWD -speed 4000
+
+.PHONY:qemu
+qemu:
+	@/home/qemu/qemu/build/qemu-system-arm -M stm32vldiscovery -kernel firmware.elf -serial stdio -serial null -serial null -nographic
+
+.PHONY:run
+run:
+	@/home/qemu/qemu/build/qemu-system-arm -M stm32vldiscovery -kernel firmware.elf -semihosting -nographic
+
+test:
+	@/home/qemu/qemu/build/qemu-system-arm -M stm32vldiscovery -kernel firmware.elf -d unimp,guest_errors -nographic
+test2:
+	@/home/qemu/qemu/build/qemu-system-arm -M stm32vldiscovery -kernel firmware.elf -nographic -d guest_errors,unimp	
+test3:
+	@/home/qemu/qemu/build/qemu-system-arm -M stm32vldiscovery -kernel firmware.elf -nographic
     
