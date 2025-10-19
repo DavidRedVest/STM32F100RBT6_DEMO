@@ -125,4 +125,8 @@ test2:
 	@/home/qemu/qemu/build/qemu-system-arm -M stm32vldiscovery -kernel firmware.elf -nographic -d guest_errors,unimp	
 test3:
 	@/home/qemu/qemu/build/qemu-system-arm -M stm32vldiscovery -kernel firmware.elf -nographic
+
+#查看写寄存器踪迹
+test4:
+	@/home/qemu/qemu/build/qemu-system-arm -M stm32vldiscovery -kernel firmware.elf -nographic -d guest_errors
     

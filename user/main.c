@@ -58,35 +58,49 @@ static void qemu_myputs(const char *s)
 }
 #endif
 
-#if 1
-//#define USART1_BASE (0x40013800UL)
-#define RCC_APB2ENR (*(volatile unsigned int *)0x40021018)
-#define USART1_SR   (*(volatile unsigned int *)(USART1_BASE + 0x00))
-#define USART1_DR   (*(volatile unsigned int *)(USART1_BASE + 0x04))
-#define USART1_BRR  (*(volatile unsigned int *)(USART1_BASE + 0x08))
-#define USART1_CR1  (*(volatile unsigned int *)(USART1_BASE + 0x0C))
+#if 0
+//#define USART1_BASE  (0x40013800UL)
+#define USART1_SR    (*(volatile uint32_t *)(USART1_BASE + 0x00))
+#define USART1_DR    (*(volatile uint32_t *)(USART1_BASE + 0x04))
+#define USART1_BRR   (*(volatile uint32_t *)(USART1_BASE + 0x08))
+#define USART1_CR1   (*(volatile uint32_t *)(USART1_BASE + 0x0C))
 
-static void uart_init(void)
+static inline void qemu_uart_init(void)
 {
-    RCC_APB2ENR |= (1 << 14);     // USART1EN
-    USART1_BRR = 0x1D4C;          // 72MHz / 115200
-    USART1_CR1 = 0x200C;          // UE + TE + RE
+    // 关键点：QEMU 下不要访问任何 RCC/AFIO/GPIO
+    // 波特率值无所谓，QEMU 并不校验
+    USART1_BRR = 0x1D4C;            // 115200@72MHz，随便填
+    USART1_CR1 = (1u<<13) | (1u<<3) | (1u<<2);  // UE|TE|RE
 }
 
-static void uart_putc(char c)
+static inline void qemu_uart_putc(char c)
 {
-    while (!(USART1_SR & (1 << 7)));  // TXE
-    USART1_DR = c;
+    while ((USART1_SR & (1u<<7)) == 0) { } // 等 TXE=1
+    USART1_DR = (uint8_t)c;
 }
 
-void rt_hw_console_output(const char *str)
+static inline void qemu_console_write(const char *s)
 {
-    while (*str)
-    {
-        if (*str == '\n') uart_putc('\r');
-        uart_putc(*str++);
+    while (*s) {
+        if (*s == '\n') qemu_uart_putc('\r');
+        qemu_uart_putc(*s++);
     }
 }
+void rt_hw_console_output(const char *str)
+{
+//#ifdef QEMU_DEBUG
+#if 1
+    qemu_console_write(str);
+#else
+    // 走你原先的 HAL / 真机路径（会涉及 RCC 时钟等）
+    while (*str) {
+        if (*str == '\n') HAL_UART_Transmit(&huart1, (uint8_t*)"\r", 1, 10);
+        HAL_UART_Transmit(&huart1, (uint8_t*)str, 1, 10);
+        str++;
+    }
+#endif
+}
+
 
 
 #endif
@@ -97,6 +111,19 @@ void rt_hw_console_output(const char *str)
   */
 int main(void)
 {
+#if 0
+  MX_USART1_UART_Init();
+  //qemu_uart_init();
+  //qemu_console_write("Hello from QEMU UART!\n");
+  rt_kprintf("Hello qemu! \r\n");
+  HAL_Init();
+  SystemClock_Config();
+  rt_kprintf("Hello STM32F100RBT6! \r\n");
+  for(;;) { 
+
+  }
+
+#else 
   HAL_Init();
 
   /* Configure the system clock to 24 MHz */
@@ -104,19 +131,20 @@ int main(void)
 
   /* Add your application code here */
   //GPIO_KEY_Init();
-//  GPIO_LED_Init();
- // MX_USART1_UART_Init();
- // MX_USART2_UART_Init();
-  uart_init();
+  GPIO_LED_Init();
+  MX_USART1_UART_Init();
+  MX_USART2_UART_Init();
+ // uart_init();
+  //qemu_uart_init();
 
-  //myputstr("Hello UART2\r\n");
-  rt_hw_console_output("Hello QEMU UART!\n");
+  //myputstr("Hello UART\r\n");
+ // rt_hw_console_output("Hello QEMU UART!\n");
 
-  
-//  USER_LED1_On();
- // USER_LED2_On();
+  USER_LED1_On();
+  USER_LED2_On();
+  //myputstr("uart purstr!\r\n");
 
-  //rt_kprintf("Hello STM32F100RBT6! \r\n");
+  rt_kprintf("Hello STM32F100RBT6! \r\n");
   
 
   /* Infinite loop */
@@ -135,6 +163,7 @@ int main(void)
 	HAL_Delay(500);
 
   }
+#endif  
 }
 
 /**
@@ -288,6 +317,7 @@ void HAL_Delay(uint32_t Delay)
   while ((HAL_GetTick() - tickstart) < wait)
   {
   }
+
 }
 
 

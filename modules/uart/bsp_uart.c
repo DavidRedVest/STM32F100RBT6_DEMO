@@ -193,6 +193,8 @@ void HAL_UART_MspDeInit(UART_HandleTypeDef* uartHandle)
 	  return ch;
 }
 #endif
+
+#if 1
  /* 为了实现printf打印，需要实现一个myputstr函数 */
 static int myputchar(const char ch)
 {
@@ -210,5 +212,5 @@ void myputstr(const char *str)
 	}
 
 }
-	
+#endif	
 
